@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TD Risk: Normal Metabolizer vs Poor Metabolizer Comparison</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --primary: #2B5797; --danger: #C9302C; --success: #155724; --warning: #856404;
+  --bg: #ffffff; --card-bg: #fdfdfe; --border: #dee2e6; --text: #333;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+.container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+h1 { color: var(--primary); font-size: 1.4em; margin-bottom: 4px; }
+h2 { color: var(--primary); font-size: 1.15em; margin-bottom: 8px; border-bottom: 2px solid var(--primary); padding-bottom: 4px; }
+h3 { color: var(--primary); font-size: 1em; margin: 12px 0 6px; }
+.subtitle { color: #666; font-size: 0.9em; margin-bottom: 16px; }
+.card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.alert { background: #fff3cd; border: 2px solid var(--danger); border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+.alert h2 { color: var(--danger); border-bottom-color: var(--danger); }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.82em; margin-bottom: 8px; }
+th { background: var(--primary); color: white; padding: 7px 6px; text-align: left; }
+td { padding: 6px; border-bottom: 1px solid var(--border); }
+tr:nth-child(even) { background: #f8fafc; }
+.pm { color: var(--danger); font-weight: 700; }
+.nm { color: var(--success); font-weight: 700; }
+.compare-row { display: grid; grid-template-columns: 200px 1fr 1fr; gap: 0; border-bottom: 1px solid var(--border); }
+.compare-row.header { background: var(--primary); color: white; font-weight: 600; font-size: 0.85em; }
+.compare-row > div { padding: 8px 10px; font-size: 0.85em; }
+.compare-row:nth-child(even) { background: #f8fafc; }
+.col-label { font-weight: 600; }
+.col-nm { border-left: 1px solid var(--border); background: rgba(212,237,218,0.2); }
+.col-pm { border-left: 1px solid var(--border); background: rgba(248,215,218,0.2); }
+.chart-container { position: relative; max-height: 350px; }
+.chart-container canvas { max-height: 350px; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75em; font-weight: 600; }
+.badge-red { background: #f8d7da; color: var(--danger); }
+.badge-green { background: #d4edda; color: var(--success); }
+.badge-yellow { background: #fff3cd; color: var(--warning); }
+.note-box { background: #e8f4fd; border: 1px solid #b8daff; border-radius: 8px; padding: 12px; font-size: 0.85em; margin-top: 16px; }
+@media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .compare-row { grid-template-columns: 120px 1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Tardive Dyskinesia Risk: Normal Metabolizer vs CYP2D6 Poor Metabolizer</h1>
+<p class="subtitle">Side-by-side comparison showing how CYP2D6 *4/*4 PM status amplified DRBA exposure and TD risk for Damien A. Reilley | March 2026 | v3</p>
+
+<div class="alert">
+  <h2>Key Finding</h2>
+  <p>Damien is a <span class="pm">CYP2D6 Poor Metabolizer (*4/*4)</span> with <strong>ZERO</strong> enzyme activity. This means CYP2D6-substrate antipsychotics (risperidone, aripiprazole) were effectively overdosed at standard doses. Additionally, he has <span class="pm">CYP2C19 Intermediate Metabolizer</span> and <span class="pm">CYP2C9 Intermediate Metabolizer</span> status, creating a triple metabolizer burden that reduces backup metabolic pathways.</p>
+</div>
+
+<!-- METABOLIZER COMPARISON -->
+<div class="card">
+  <h2>All Relevant Metabolizer Results — Normal vs Patient</h2>
+  <div class="compare-row header"><div>Gene</div><div>Normal Metabolizer</div><div>Damien's Result</div></div>
+  <div class="compare-row"><div class="col-label">CYP2D6</div><div class="col-nm"><span class="nm">Normal (*1/*1)</span> — Full enzyme activity. Standard drug clearance.</div><div class="col-pm"><span class="pm">POOR (*4/*4)</span> — ZERO activity. 1.5-2.0x drug levels for major substrates. Confirmed on both GeneSight and Admera.</div></div>
+  <div class="compare-row"><div class="col-label">CYP2C19</div><div class="col-nm"><span class="nm">Normal (*1/*1)</span> — Standard metabolism of PPIs, clopidogrel, diazepam.</div><div class="col-pm"><span class="pm">Intermediate (*1/*2)</span> — Reduced. Backup pathway for CYP2D6 substrates is ALSO impaired.</div></div>
+  <div class="compare-row"><div class="col-label">CYP2C9</div><div class="col-nm"><span class="nm">Normal (*1/*1)</span> — Standard warfarin/NSAID metabolism.</div><div class="col-pm"><span class="pm">Intermediate (*1/*2)</span> — Reduced. Third impaired CYP enzyme. Triple burden.</div></div>
+  <div class="compare-row"><div class="col-label">CYP3A4</div><div class="col-nm"><span class="nm">Normal (*1/*1)</span></div><div class="col-nm"><span class="nm">Normal (*1/*1)</span> — Primary quetiapine pathway. No adjustment needed.</div></div>
+  <div class="compare-row"><div class="col-label">CYP3A5</div><div class="col-nm"><span class="nm">Normal Expresser</span></div><div class="col-pm">Non Expresser (*3A/*3A) — Affects tacrolimus, midazolam.</div></div>
+  <div class="compare-row"><div class="col-label">COMT</div><div class="col-nm"><span class="nm">VAL/VAL</span> — Normal dopamine degradation.</div><div class="col-pm"><span class="pm">MET/MET</span> — Slower dopamine breakdown in prefrontal cortex. Reduced stimulant response.</div></div>
+  <div class="compare-row"><div class="col-label">MTHFR</div><div class="col-nm"><span class="nm">Normal (C/C)</span> — Normal folate metabolism.</div><div class="col-pm"><span class="badge badge-yellow">C677T Het</span> — Reduced folic acid conversion. Use methylfolate.</div></div>
+  <div class="compare-row"><div class="col-label">NAT2</div><div class="col-nm"><span class="nm">Rapid Acetylator</span></div><div class="col-pm"><span class="badge badge-yellow">Intermediate (*6/*13)</span> — TB drug hepatotoxicity risk.</div></div>
+  <div class="compare-row"><div class="col-label">SLC6A4</div><div class="col-nm"><span class="nm">S/S (Short Form)</span></div><div class="col-pm">LA/LG (Long Form) — Olanzapine/quetiapine side effect risk.</div></div>
+  <div class="compare-row"><div class="col-label">VKORC1</div><div class="col-nm"><span class="nm">G/G (Wild Type)</span></div><div class="col-pm"><span class="badge badge-yellow">A Allele Carrier</span> — Warfarin dose reduction to 3-4mg/day.</div></div>
+  <div class="compare-row"><div class="col-label">NOS1AP</div><div class="col-nm"><span class="nm">Normal</span></div><div class="col-pm"><span class="badge badge-yellow">rs10494366 GT</span> — QTc prolongation risk with antipsychotics.</div></div>
+  <div class="compare-row"><div class="col-label">ABCB1</div><div class="col-nm"><span class="nm">Normal transport</span></div><div class="col-pm">rs1045642 AG — Altered drug transport for multiple medications.</div></div>
+</div>
+
+<!-- RISPERDAL COMPARISON -->
+<div class="grid-2">
+<div class="card">
+  <h2>Risperdal Exposure: Normal vs PM</h2>
+  <div class="chart-container"><canvas id="rispChart"></canvas></div>
+  <table style="margin-top: 12px;">
+    <thead><tr><th>Metric</th><th class="nm">Normal Metabolizer</th><th class="pm">Damien (CYP2D6 PM)</th></tr></thead>
+    <tbody>
+    <tr><td>Peak dose prescribed</td><td>3mg</td><td>3mg</td></tr>
+    <tr><td>Effective plasma level</td><td class="nm">3mg equivalent</td><td class="pm">4.5-6mg equivalent</td></tr>
+    <tr><td>CPZeq at 3mg</td><td class="nm">201mg</td><td class="pm">301-402mg</td></tr>
+    <tr><td>Escalation 0.5→3mg</td><td>47 days</td><td>47 days (same speed, higher levels)</td></tr>
+    <tr><td>TD risk from this drug</td><td><span class="badge badge-yellow">Elevated</span></td><td><span class="badge badge-red">CRITICAL</span></td></tr>
+    <tr><td>Admera recommendation</td><td>Standard dosing</td><td class="pm">CONSIDER ALTERNATIVES</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Seroquel Exposure: Normal vs PM</h2>
+  <div class="chart-container"><canvas id="seroChart"></canvas></div>
+  <table style="margin-top: 12px;">
+    <thead><tr><th>Metric</th><th class="nm">Normal Metabolizer</th><th class="pm">Damien (CYP2D6 PM)</th></tr></thead>
+    <tbody>
+    <tr><td>Primary metabolism</td><td>CYP3A4 (normal)</td><td>CYP3A4 (normal)</td></tr>
+    <tr><td>PM adjustment factor</td><td class="nm">1.0x</td><td class="nm">1.0x (no CYP2D6 effect)</td></tr>
+    <tr><td>Duration of use</td><td colspan="2">~8 years (same for both)</td></tr>
+    <tr><td>300mg CPZeq</td><td class="nm">201mg</td><td class="nm">201mg (same)</td></tr>
+    <tr><td>TD risk mechanism</td><td><span class="badge badge-yellow">Duration + dose</span></td><td><span class="badge badge-red">Duration + dose + concurrent PM Risperdal</span></td></tr>
+    <tr><td>SLC6A4 flag</td><td>—</td><td class="pm">USE CAUTION — increased side effects (LA/LG)</td></tr>
+    </tbody>
+  </table>
+</div>
+</div>
+
+<!-- DUAL DRBA COMPARISON -->
+<div class="card">
+  <h2>Peak Dual DRBA Period: January 2017 — The Perfect Storm</h2>
+  <div class="grid-2">
+    <div>
+      <h3 class="nm">In a Normal Metabolizer:</h3>
+      <table>
+        <tr><td>Risperdal 3mg CPZeq</td><td class="nm">201mg</td></tr>
+        <tr><td>Seroquel 100mg CPZeq</td><td>67mg</td></tr>
+        <tr><td><strong>Combined daily CPZeq</strong></td><td class="nm"><strong>268mg</strong></td></tr>
+        <tr><td>TD risk level</td><td><span class="badge badge-yellow">Elevated</span></td></tr>
+      </table>
+    </div>
+    <div>
+      <h3 class="pm">In Damien (CYP2D6 PM):</h3>
+      <table>
+        <tr><td>Risperdal 3mg PM-adj CPZeq</td><td class="pm">301-402mg</td></tr>
+        <tr><td>Seroquel 100mg CPZeq</td><td>67mg</td></tr>
+        <tr><td><strong>Combined daily CPZeq</strong></td><td class="pm"><strong>368-469mg</strong></td></tr>
+        <tr><td>TD risk level</td><td><span class="badge badge-red">CRITICAL</span></td></tr>
+      </table>
+    </div>
+  </div>
+  <p style="font-size: 0.85em; margin-top: 12px; color: var(--danger); font-weight: 600;">The CYP2D6 PM status increased peak concurrent DRBA exposure by 37-75% compared to a normal metabolizer receiving identical prescriptions.</p>
+</div>
+
+<!-- VMAT2 DOSING -->
+<div class="card">
+  <h2>VMAT2 Inhibitor Dosing: Normal vs PM</h2>
+  <table>
+    <thead><tr><th>Drug</th><th class="nm">Normal Metabolizer</th><th class="pm">CYP2D6 PM (Damien)</th><th>Reduction</th></tr></thead>
+    <tbody>
+    <tr><td><strong>Valbenazine (Ingrezza)</strong></td><td class="nm">Max 80mg/day</td><td class="pm">Max 40mg/day</td><td><span class="badge badge-red">50% reduction</span></td></tr>
+    <tr><td><strong>Deutetrabenazine (Austedo)</strong></td><td class="nm">Max 48mg/day</td><td class="pm">Max 36mg/day</td><td><span class="badge badge-red">25% reduction</span></td></tr>
+    <tr><td><strong>Tetrabenazine (Xenazine)</strong></td><td class="nm">Standard dosing</td><td class="pm">Max 50mg/day, 25mg max single dose</td><td><span class="badge badge-yellow">Reduced</span></td></tr>
+    </tbody>
+  </table>
+  <p style="font-size: 0.85em; margin-top: 8px;">Note: Concurrent bupropion (strong CYP2D6 inhibitor) would independently trigger the same dose caps even in a normal metabolizer. For Damien, both the genotype and the drug interaction converge.</p>
+</div>
+
+<!-- TRIPLE BURDEN VISUALIZATION -->
+<div class="card">
+  <h2>Triple Metabolizer Burden — Compounding Effect</h2>
+  <div class="chart-container"><canvas id="burdenChart"></canvas></div>
+  <p style="font-size: 0.85em; margin-top: 10px;">When CYP2D6 fails (PM), the body routes drugs through backup CYP2C19 and CYP2C9 pathways. But these are ALSO impaired (Intermediate), meaning drugs have fewer escape routes for clearance. This compounding effect is especially dangerous for drugs like citalopram (CYP2C19 primary + CYP2D6 secondary = double impairment) and venlafaxine (CYP2D6 primary + CYP2C19 secondary = double impairment — which explains the manic episode).</p>
+</div>
+
+<div class="note-box">
+  <strong>Report Update Note:</strong> This comparison uses pharmacogenomic data from GeneSight (10/22/2018, 16 genes) and Admera PGxOne Plus (9/22/2018, 53 genes). CYP2D6 *4/*4 PM confirmed identical on both tests. PM adjustment factors per FDA labeling and CPIC guidelines. CPZeq conversions per Gardner et al. 2010. This report will be updated as additional records are obtained.
+</div>
+
+</div>
+
+<script>
+// Risperdal comparison chart
+new Chart(document.getElementById('rispChart'), {
+  type: 'bar',
+  data: {
+    labels: ['0.5mg','1mg','2mg','2.75mg','3mg (peak)'],
+    datasets: [
+      { label: 'Normal Metabolizer CPZeq', data: [33, 67, 134, 184, 201], backgroundColor: 'rgba(21,87,36,0.6)', borderColor: '#155724', borderWidth: 1 },
+      { label: 'CYP2D6 PM CPZeq (Damien)', data: [50, 100, 200, 276, 352], backgroundColor: 'rgba(201,48,44,0.6)', borderColor: '#C9302C', borderWidth: 1 }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { title: { display: true, text: 'Risperdal CPZeq: Normal vs PM at Each Dose', font: { size: 12 } } },
+    scales: { y: { title: { display: true, text: 'PM-Adjusted CPZeq (mg)' }, min: 0 } }
+  }
+});
+
+// Seroquel comparison chart
+new Chart(document.getElementById('seroChart'), {
+  type: 'bar',
+  data: {
+    labels: ['100mg','200mg','300mg','400mg (peak)'],
+    datasets: [
+      { label: 'Normal Metabolizer CPZeq', data: [67, 134, 201, 268], backgroundColor: 'rgba(21,87,36,0.6)', borderColor: '#155724', borderWidth: 1 },
+      { label: 'CYP2D6 PM CPZeq (Damien)', data: [67, 134, 201, 268], backgroundColor: 'rgba(43,87,151,0.6)', borderColor: '#2B5797', borderWidth: 1 }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { title: { display: true, text: 'Seroquel CPZeq: Same for Both (CYP3A4 primary)', font: { size: 12 } } },
+    scales: { y: { title: { display: true, text: 'CPZeq (mg)' }, min: 0 } }
+  }
+});
+
+// Triple burden chart
+new Chart(document.getElementById('burdenChart'), {
+  type: 'bar',
+  data: {
+    labels: ['CYP2D6', 'CYP2C19', 'CYP2C9', 'CYP3A4', 'CYP1A2', 'CYP2B6'],
+    datasets: [
+      { label: 'Normal Activity Level', data: [100, 100, 100, 100, 100, 100], backgroundColor: 'rgba(21,87,36,0.3)', borderColor: '#155724', borderWidth: 2 },
+      { label: "Damien's Activity Level", data: [0, 50, 50, 100, 100, 100], backgroundColor: ['rgba(201,48,44,0.6)','rgba(255,193,7,0.6)','rgba(255,193,7,0.6)','rgba(21,87,36,0.4)','rgba(21,87,36,0.4)','rgba(21,87,36,0.4)'],
+        borderColor: ['#C9302C','#e0a800','#e0a800','#155724','#155724','#155724'], borderWidth: 2 }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { title: { display: true, text: 'CYP Enzyme Activity: Normal (100%) vs Damien', font: { size: 13 } } },
+    scales: {
+      y: { title: { display: true, text: 'Enzyme Activity (%)' }, min: 0, max: 120,
+        ticks: { callback: v => v + '%' } }
+    }
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neurologist Medication Dashboard — Damien A. Reilley</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --primary: #2B5797; --danger: #C9302C; --warning: #856404; --success: #155724;
+  --bg: #f8f9fa; --card: #ffffff; --text: #333333; --muted: #6c757d;
+  --border: #dee2e6; --red-bg: #f8d7da; --yellow-bg: #fff3cd; --green-bg: #d4edda; --blue-bg: #e8f4fd;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+.container { max-width: 1200px; margin: 0 auto; padding: 12px; }
+.header { background: linear-gradient(135deg, var(--primary), #1a3a6b); color: white; padding: 20px; border-radius: 8px; margin-bottom: 16px; }
+.header h1 { font-size: 1.4em; margin-bottom: 4px; }
+.header .subtitle { opacity: 0.85; font-size: 0.9em; }
+.patient-info { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; font-size: 0.85em; }
+.patient-info span { background: rgba(255,255,255,0.15); padding: 3px 10px; border-radius: 4px; }
+
+.alert-box { background: var(--yellow-bg); border: 2px solid var(--danger); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.alert-box h2 { color: var(--danger); font-size: 1.1em; margin-bottom: 8px; }
+.alert-box p { font-size: 0.9em; margin-bottom: 4px; }
+.alert-box .critical { color: var(--danger); font-weight: 700; }
+
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px; }
+.tab { padding: 8px 16px; border: 1px solid var(--border); border-radius: 6px 6px 0 0; cursor: pointer; font-size: 0.85em; font-weight: 600; background: white; color: var(--muted); transition: all 0.2s; }
+.tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+.tab:hover:not(.active) { background: var(--blue-bg); }
+.panel { display: none; }
+.panel.active { display: block; }
+
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.card h3 { color: var(--primary); font-size: 1.05em; margin-bottom: 10px; border-bottom: 2px solid var(--primary); padding-bottom: 6px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 0.8em; }
+th { background: var(--primary); color: white; padding: 8px 6px; text-align: left; font-weight: 600; position: sticky; top: 0; }
+td { padding: 6px; border-bottom: 1px solid var(--border); }
+tr:nth-child(even) { background: #f8fafc; }
+tr.highlight-red { background: var(--red-bg) !important; }
+tr.highlight-yellow { background: var(--yellow-bg) !important; }
+tr.highlight-green { background: var(--green-bg) !important; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75em; font-weight: 600; }
+.badge-red { background: var(--red-bg); color: var(--danger); }
+.badge-yellow { background: var(--yellow-bg); color: var(--warning); }
+.badge-green { background: var(--green-bg); color: var(--success); }
+.badge-blue { background: var(--blue-bg); color: var(--primary); }
+.badge-gray { background: #e9ecef; color: var(--muted); }
+
+.verified { color: var(--success); font-weight: 600; }
+.unverified { color: var(--warning); font-style: italic; }
+
+.chart-container { position: relative; width: 100%; max-height: 400px; }
+.chart-container canvas { max-height: 400px; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.stat-card { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 14px; text-align: center; }
+.stat-card .value { font-size: 1.8em; font-weight: 700; }
+.stat-card .label { font-size: 0.8em; color: var(--muted); }
+
+.timeline-bar { height: 24px; border-radius: 4px; position: relative; margin: 2px 0; }
+.timeline-bar.verified { opacity: 1; }
+.timeline-bar.unverified { opacity: 0.5; background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.3) 5px, rgba(255,255,255,0.3) 10px); }
+
+.note-box { background: var(--blue-bg); border: 1px solid #b8daff; border-radius: 8px; padding: 12px 16px; margin-top: 16px; font-size: 0.85em; }
+.note-box strong { color: var(--primary); }
+
+@media (max-width: 768px) {
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .tabs { gap: 2px; }
+  .tab { padding: 6px 10px; font-size: 0.75em; }
+  table { font-size: 0.7em; }
+  th, td { padding: 4px 3px; }
+  .header h1 { font-size: 1.1em; }
+  .stat-card .value { font-size: 1.4em; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>Medication History Dashboard — Neurologist Review</h1>
+  <div class="subtitle">Comprehensive Medication History with Tardive Dyskinesia Analysis</div>
+  <div class="patient-info">
+    <span><strong>Patient:</strong> Damien A. Reilley</span>
+    <span><strong>DOB:</strong> June 8, 1981</span>
+    <span><strong>Report Date:</strong> March 16, 2026</span>
+    <span><strong>Version:</strong> 3.0</span>
+  </div>
+</div>
+
+<div class="alert-box">
+  <h2>CLINICAL BOTTOM LINE</h2>
+  <p class="critical">Tardive Dyskinesia diagnosed March 2024 (Dr. Stephen Spindler, Movement Disorder Specialist)</p>
+  <p><strong>Cumulative DRBA exposure:</strong> ~8.9 years | <strong class="critical">~1,144 PM-adjusted CPZeq dose-years</strong></p>
+  <p><strong class="critical">CYP2D6 Poor Metabolizer (*4/*4) — ZERO enzyme activity</strong></p>
+  <p><strong>Triple metabolizer burden:</strong> CYP2D6 PM + CYP2C19 IM + CYP2C9 IM</p>
+  <p><strong>VMAT2 inhibitor dosing:</strong> Valbenazine max 40mg/day (not 80mg) | Deutetrabenazine max 36mg/day (not 48mg)</p>
+</div>
+
+<!-- KEY STATS -->
+<div class="grid-3">
+  <div class="stat-card" style="border-left: 4px solid var(--danger);">
+    <div class="value" style="color: var(--danger);">1,144</div>
+    <div class="label">PM-Adj CPZeq Dose-Years</div>
+  </div>
+  <div class="stat-card" style="border-left: 4px solid var(--danger);">
+    <div class="value" style="color: var(--danger);">4</div>
+    <div class="label">DRBA Agents Identified</div>
+  </div>
+  <div class="stat-card" style="border-left: 4px solid var(--primary);">
+    <div class="value" style="color: var(--primary);">564</div>
+    <div class="label">Verified Rx Events</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs" style="margin-top: 16px;">
+  <div class="tab active" onclick="showTab('meds')">Current Meds</div>
+  <div class="tab" onclick="showTab('timeline')">TD Timeline</div>
+  <div class="tab" onclick="showTab('stimulants')">Stimulant History</div>
+  <div class="tab" onclick="showTab('pgx')">Pharmacogenomics</div>
+  <div class="tab" onclick="showTab('charts')">Exposure Charts</div>
+  <div class="tab" onclick="showTab('sideeffects')">Side Effects</div>
+</div>
+
+<!-- TAB 1: CURRENT MEDICATIONS -->
+<div id="meds" class="panel active">
+<div class="card">
+<h3>Current Medications (9 Active) — Verified March 15, 2026</h3>
+<div style="overflow-x:auto;">
+<table>
+<thead><tr><th>Medication</th><th>Dose</th><th>Frequency</th><th>Prescriber</th><th>TD Class</th><th>PGx</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td><strong>Wellbutrin XL</strong> (bupropion)</td><td>300mg</td><td>once daily</td><td>Dr. Castro</td><td><span class="badge badge-gray">neutral</span></td><td><span class="badge badge-yellow">Yellow</span></td><td>Stable since 12/2023</td></tr>
+<tr><td><strong>Zoloft</strong> (sertraline)</td><td><strong>25mg</strong></td><td>once daily</td><td>Dr. Castro</td><td><span class="badge badge-gray">neutral</span></td><td><span class="badge badge-yellow">Yellow</span></td><td>Restarted 7/2025. 200mg caused intrusive thoughts</td></tr>
+<tr><td><strong>Adderall IR</strong> (amphetamine)</td><td>20mg</td><td>three times daily</td><td>Dr. Castro</td><td><span class="badge badge-red">worsening</span></td><td><span class="badge badge-yellow">Yellow</span></td><td>60mg/day total. Complex stimulant history since 2005</td></tr>
+<tr><td><strong>Lamictal</strong> (lamotrigine)</td><td>200mg</td><td>at bedtime</td><td>Dr. Castro</td><td><span class="badge badge-gray">neutral</span></td><td><span class="badge badge-green">Green</span></td><td>Continuous. 39+ fills. Never missed a month</td></tr>
+<tr><td><strong>Inderal</strong> (propranolol)</td><td>20mg</td><td>three times daily</td><td>Dr. Castro</td><td><span class="badge badge-green">protective</span></td><td><span class="badge badge-red">Red</span></td><td>Coordinated with Spindler for TD/tremor</td></tr>
+<tr><td><strong>Klonopin</strong> (clonazepam)</td><td>0.5mg</td><td>twice daily</td><td>Dr. Spindler</td><td><span class="badge badge-green">protective</span></td><td><span class="badge badge-green">Green</span></td><td>Prescribed FOR TD. ~65% effective</td></tr>
+<tr><td><strong>Ativan</strong> (lorazepam)</td><td>1mg</td><td>as needed</td><td>Dr. Castro</td><td><span class="badge badge-gray">neutral</span></td><td><span class="badge badge-green">Green</span></td><td>For anxiety/procedures</td></tr>
+<tr><td><strong>Neurontin</strong> (gabapentin)</td><td>300mg</td><td>three times daily</td><td>Mulholland/Hatwood</td><td><span class="badge badge-gray">neutral</span></td><td><span class="badge badge-blue">N/A</span></td><td><strong>Dual indication:</strong> RLS (Spindler 100mg) + pain (Hatwood 300mg TID)</td></tr>
+<tr><td><strong>Imitrex</strong> (sumatriptan)</td><td>25mg</td><td>as needed</td><td>Honig PA-C</td><td><span class="badge badge-gray">neutral</span></td><td><span class="badge badge-blue">N/A</span></td><td>For migraine aura. Max 2/24h</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+
+<!-- TAB 2: TD TIMELINE -->
+<div id="timeline" class="panel">
+<div class="card">
+<h3>Tardive Dyskinesia Timeline — Chronological DRBA Exposure</h3>
+<div style="overflow-x:auto;">
+<table>
+<thead><tr><th>Date</th><th>Event</th><th>DRBA Dose</th><th>PM-Adj CPZeq</th></tr></thead>
+<tbody>
+<tr><td><strong>Jun 2012</strong></td><td>FIRST DRBA: Compazine 5mg PRN (Nemez, nausea)</td><td>5mg PRN</td><td>~10mg adj</td></tr>
+<tr><td><strong>Mar 2016</strong></td><td>Seroquel 200mg — first quetiapine fill</td><td>200mg</td><td>134mg</td></tr>
+<tr class="highlight-red"><td><strong>Dec 2016</strong></td><td>Risperdal 0.5mg started (NY-Presbyterian discharge)</td><td>0.5mg</td><td>50mg adj</td></tr>
+<tr class="highlight-yellow"><td><strong>Dec 2016</strong></td><td>DUAL DRBA PERIOD BEGINS: Risperdal + Seroquel concurrent</td><td>Combined</td><td>Combined</td></tr>
+<tr class="highlight-red"><td><strong>Jan 2017</strong></td><td><strong>Risperdal PEAK 3mg</strong> — rapid escalation in CYP2D6 PM</td><td>R:3mg + S:100mg</td><td><strong>368mg combined</strong></td></tr>
+<tr><td><strong>Apr-Dec 2017</strong></td><td>Risperdal tapering then discontinued</td><td>Tapering</td><td>Decreasing</td></tr>
+<tr class="highlight-yellow"><td><strong>Apr 2018</strong></td><td>Seroquel 300mg — sustained ~2.75 years</td><td>300mg</td><td>201mg</td></tr>
+<tr class="highlight-red"><td><strong>May 2018</strong></td><td>Seroquel PEAK 400mg (brief)</td><td>400mg</td><td>268mg</td></tr>
+<tr class="highlight-yellow"><td><strong>Jun 2018-Mar 2021</strong></td><td>Seroquel 300mg sustained (~2.75 years continuous)</td><td>300mg</td><td>201mg</td></tr>
+<tr class="highlight-red"><td><strong>~2020</strong></td><td><strong>FIRST TD SYMPTOMS:</strong> feet moving, swaying, cuts on toes</td><td>Seroquel 300mg</td><td>201mg</td></tr>
+<tr class="highlight-red"><td><strong>Aug 2020</strong></td><td>Benztropine 0.5mg added — anticholinergic WORSENS TD</td><td>—</td><td>—</td></tr>
+<tr><td><strong>Aug-Sep 2021</strong></td><td>TD discussed by Castro. AIMS exam = 0</td><td>—</td><td>—</td></tr>
+<tr class="highlight-green"><td><strong>Mar 2021</strong></td><td>Seroquel taper begins: 300mg → 150mg</td><td>150mg</td><td>100mg</td></tr>
+<tr class="highlight-green"><td><strong>Jan 2023</strong></td><td>Seroquel reduced: 150mg → 100mg</td><td>100mg</td><td>67mg</td></tr>
+<tr class="highlight-green"><td><strong>Mar 2023</strong></td><td>Seroquel reduced: 100mg → 50mg</td><td>50mg</td><td>33mg</td></tr>
+<tr class="highlight-green"><td><strong>Apr 2023</strong></td><td>Seroquel STOPPED (patient insisted)</td><td>STOPPED</td><td>0</td></tr>
+<tr class="highlight-red"><td><strong>Sep 2023</strong></td><td>Benztropine increased to 1mg — worsening TD further</td><td>—</td><td>—</td></tr>
+<tr><td><strong>~Dec 2023</strong></td><td>Seroquel RESUMED at 50mg PRN</td><td>50mg PRN</td><td>~17mg avg</td></tr>
+<tr class="highlight-red"><td><strong>Mar 13, 2024</strong></td><td><strong>DR. SPINDLER FORMALLY DIAGNOSES TD.</strong> Clonazepam started</td><td>—</td><td>—</td></tr>
+<tr class="highlight-green"><td><strong>Mar 2024</strong></td><td>Benztropine STOPPED by Spindler</td><td>—</td><td>—</td></tr>
+<tr class="highlight-green"><td><strong>Jul 2024</strong></td><td><strong>Seroquel FINALLY DISCONTINUED</strong> (last DRBA removed)</td><td>STOPPED</td><td>0</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="card">
+<h3>DRBA Summary</h3>
+<div style="overflow-x:auto;">
+<table>
+<thead><tr><th>DRBA Agent</th><th>Class</th><th>Duration</th><th>Peak Dose</th><th>Peak CPZeq (PM-Adj)</th><th>CYP2D6 Impact</th></tr></thead>
+<tbody>
+<tr><td><strong>Compazine</strong></td><td>FGA/antiemetic</td><td>~7 months</td><td>5mg PRN</td><td>~10mg</td><td>1.2x (minor)</td></tr>
+<tr class="highlight-red"><td><strong>Risperdal</strong></td><td>SGA</td><td>~12 months</td><td>3mg</td><td><strong>301-402mg</strong></td><td><strong>1.5-2.0x (MAJOR)</strong></td></tr>
+<tr class="highlight-red"><td><strong>Seroquel</strong></td><td>SGA</td><td>~8 years</td><td>400mg</td><td><strong>268mg</strong></td><td>1.0x (CYP3A4 primary)</td></tr>
+<tr><td><strong>Abilify</strong></td><td>SGA</td><td>~5 days</td><td>Unknown</td><td>~100mg est</td><td>1.5-2.0x (MAJOR)</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+
+<!-- TAB 3: STIMULANT HISTORY -->
+<div id="stimulants" class="panel">
+<div class="card">
+<h3>Complete Stimulant / ADHD Medication History</h3>
+<p style="font-size:0.85em; color: var(--muted); margin-bottom: 12px;">Stimulant therapy began approximately 2005 with Dr. Henry Cheng. Pre-2015 pharmacy records are not available. Multiple formulations trialed before stabilizing under Dr. Castro.</p>
+<div style="overflow-x:auto;">
+<table>
+<thead><tr><th>Period</th><th>Drug</th><th>Dose</th><th>Frequency</th><th>Prescriber</th><th>Status</th><th>Notes</th></tr></thead>
+<tbody>
+<tr class="highlight-yellow"><td>2005-2009</td><td>Adderall IR</td><td>10mg</td><td>three times daily</td><td>Dr. Henry Cheng</td><td><span class="unverified">UNVERIFIED</span></td><td>Patient-reported. Pre-2015 pharmacy records unavailable</td></tr>
+<tr class="highlight-yellow"><td>2009-2015</td><td>Adderall (unknown)</td><td>unknown</td><td>unknown</td><td>unknown</td><td><span class="unverified">UNVERIFIED</span></td><td>No records for this period</td></tr>
+<tr><td>~2015</td><td>Vyvanse</td><td>60mg</td><td>once daily</td><td>Dr. McGonigle</td><td><span class="badge badge-blue">PRESCRIBER ONLY</span></td><td>Patient did not like this medication</td></tr>
+<tr><td>2015 Jun-Aug</td><td>Adderall XR</td><td>30mg</td><td>—</td><td>unknown</td><td><span class="verified">VERIFIED</span></td><td>3 Rite Aid fills</td></tr>
+<tr><td>2016 Mar</td><td>Adderall IR</td><td>10mg</td><td>20mg twice daily</td><td>Dr. Oluwabusi</td><td><span class="verified">VERIFIED</span></td><td>Horsham inpatient discharge</td></tr>
+<tr><td>2016 Apr</td><td>Adderall XR</td><td>30mg</td><td>—</td><td>unknown</td><td><span class="verified">VERIFIED</span></td><td>OptumRx fill</td></tr>
+<tr><td>2016 May</td><td>Adderall XR</td><td>20mg</td><td>—</td><td>unknown</td><td><span class="verified">VERIFIED</span></td><td>Dose reduced from 30mg</td></tr>
+<tr><td>2016 Sep</td><td>Adderall IR</td><td>20mg</td><td>—</td><td>Dr. Nemez</td><td><span class="verified">VERIFIED</span></td><td>Rapoport fill, qty 90</td></tr>
+<tr><td>2016 Oct</td><td>Adderall IR</td><td>10mg</td><td>—</td><td>Dr. Nemez</td><td><span class="verified">VERIFIED</span></td><td>Dose reduced</td></tr>
+<tr><td>2017 Jan</td><td>Adderall IR</td><td>20mg</td><td>—</td><td>unknown (IBX)</td><td><span class="verified">VERIFIED</span></td><td>Back to 20mg</td></tr>
+<tr><td>2017 May</td><td>Dexedrine</td><td>10mg</td><td>—</td><td>Dr. Kanevsky</td><td><span class="verified">VERIFIED</span></td><td>Rx pad photo IMG_6408</td></tr>
+<tr><td>2017 Jul</td><td>Dexedrine</td><td>10mg</td><td>—</td><td>Dr. Kanevsky</td><td><span class="verified">VERIFIED</span></td><td>Rx pad photo IMG_6407</td></tr>
+<tr><td>2018 Aug</td><td>Adderall IR</td><td>20mg→10mg</td><td>three times daily</td><td>Dr. Castro</td><td><span class="verified">VERIFIED</span></td><td>Baseline then tapered at intake</td></tr>
+<tr><td>2019 Jan</td><td>Adderall IR</td><td>20mg</td><td>three times daily</td><td>Dr. Castro</td><td><span class="verified">VERIFIED</span></td><td>Session #8</td></tr>
+<tr><td>2019 Apr-Jun</td><td>Adderall IR</td><td>20mg</td><td>daily</td><td>Dr. Castro</td><td><span class="verified">VERIFIED</span></td><td>Rapoport fills</td></tr>
+<tr><td>2023 Jun</td><td>Dextroamphetamine</td><td>20mg</td><td>three times daily</td><td>Dr. Castro</td><td><span class="verified">VERIFIED</span></td><td>7-day trial (Session #54)</td></tr>
+<tr><td><strong>2024-2026</strong></td><td><strong>Adderall IR</strong></td><td><strong>20mg</strong></td><td><strong>three times daily</strong></td><td><strong>Dr. Castro</strong></td><td><span class="verified">VERIFIED</span></td><td><strong>Current: 60mg/day. Monthly Fishtown/CVS fills</strong></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+
+<!-- TAB 4: PHARMACOGENOMICS -->
+<div id="pgx" class="panel">
+<div class="card">
+<h3>Pharmacogenomic Profile — All Genes from Both Tests</h3>
+<p style="font-size:0.85em; margin-bottom:8px;"><strong>GeneSight Psychotropic</strong> (10/22/2018, Order #3123721) — 16 genes | <strong>Admera PGxOne Plus</strong> (9/22/2018, Case PGPHL18-004798) — 53 genes</p>
+<p style="font-size:0.85em; color: var(--danger); font-weight:700; margin-bottom:12px;">CYP2D6 *4/*4 Poor Metabolizer confirmed IDENTICAL on both tests.</p>
+<div style="overflow-x:auto;">
+<table>
+<thead><tr><th>Gene</th><th>Result</th><th>Phenotype</th><th>Source</th><th>Clinical Significance</th></tr></thead>
+<tbody>
+<tr class="highlight-red"><td><strong>CYP2D6</strong></td><td>*4/*4</td><td><strong>POOR METABOLIZER</strong></td><td>Both</td><td>ZERO enzyme activity. Affects 30+ drugs. Antipsychotics overdosed at standard doses</td></tr>
+<tr class="highlight-yellow"><td><strong>CYP2C19</strong></td><td>*1/*2</td><td>Intermediate Metabolizer</td><td>Both</td><td>Reduced. Affects PPIs, clopidogrel, bupropion, sertraline</td></tr>
+<tr class="highlight-yellow"><td><strong>CYP2C9</strong></td><td>*1/*2</td><td>Intermediate Metabolizer</td><td>Both</td><td>Reduced. Affects warfarin, NSAIDs, dronabinol</td></tr>
+<tr><td>CYP3A4</td><td>*1/*1</td><td>Normal Metabolizer</td><td>Both</td><td>Normal. Primary quetiapine pathway</td></tr>
+<tr><td>CYP1A2</td><td>*1/*1</td><td>Normal Metabolizer</td><td>Both</td><td>Normal. Metabolizes clozapine, olanzapine</td></tr>
+<tr><td>CYP2B6</td><td>*1/*1</td><td>Normal</td><td>Both</td><td>Normal. Metabolizes bupropion</td></tr>
+<tr><td>CYP3A5</td><td>*3A/*3A</td><td>Non Expresser</td><td>Admera</td><td>Affects tacrolimus, midazolam</td></tr>
+<tr><td>CYP2C8</td><td>*1/*3</td><td>Allele 3 Carrier</td><td>Admera</td><td>Affects thiazolidinediones</td></tr>
+<tr><td>CYP4F2</td><td>*1/*3</td><td>Intermediate Metabolizer</td><td>Admera</td><td>Affects phenprocoumon</td></tr>
+<tr><td>UGT1A4</td><td>*1/*1</td><td>Normal</td><td>GeneSight</td><td>Metabolizes lamotrigine — normal</td></tr>
+<tr><td>UGT2B15</td><td>*1/*2</td><td>Normal</td><td>Both</td><td>Minor drug metabolism role</td></tr>
+<tr class="highlight-yellow"><td><strong>COMT</strong></td><td>MET/MET</td><td>Reduced Activity</td><td>Both</td><td>Slower dopamine degradation. Reduced stimulant response</td></tr>
+<tr><td>ADRA2A</td><td>C/C</td><td>Reduced Response</td><td>Both</td><td>Reduced response to clonidine, guanfacine</td></tr>
+<tr><td>HTR2A</td><td>G/A</td><td>Normal Sensitivity</td><td>GeneSight</td><td>No added TD risk</td></tr>
+<tr><td>HTR2C</td><td>G Allele Carrier</td><td>Variant</td><td>Admera</td><td>Antipsychotic metabolic effects</td></tr>
+<tr><td>SLC6A4</td><td>LA/LG</td><td>Long Form</td><td>Both</td><td>Olanzapine/quetiapine side effects</td></tr>
+<tr class="highlight-yellow"><td><strong>MTHFR</strong></td><td>C677T Het</td><td>Intermediate</td><td>Both</td><td>Reduced folic acid conversion — use methylfolate</td></tr>
+<tr><td>DRD1</td><td>non-CC</td><td>Variant</td><td>Admera</td><td>Dopamine D1 receptor variant</td></tr>
+<tr><td>DRD2</td><td>WT/WT</td><td>Normal</td><td>Admera</td><td>Dopamine D2 receptor normal</td></tr>
+<tr><td>ABCB1</td><td>rs1045642 AG</td><td>Variant</td><td>Admera</td><td>Drug transport — affects many medications</td></tr>
+<tr><td>VKORC1</td><td>A Allele</td><td>Carrier</td><td>Admera</td><td>Warfarin dose reduction to 3-4mg/day</td></tr>
+<tr><td>NAT2</td><td>*6/*13</td><td>Intermediate Acetylator</td><td>Admera</td><td>TB drug hepatotoxicity risk</td></tr>
+<tr class="highlight-yellow"><td>NOS1AP</td><td>rs10494366 GT</td><td>Variant</td><td>Admera</td><td>QTc prolongation risk</td></tr>
+<tr><td>GRIK4</td><td>T Allele Carrier</td><td>Variant</td><td>Admera</td><td>Reduced citalopram response</td></tr>
+<tr><td>OPRM1</td><td>A/A</td><td>Normal</td><td>Both</td><td>Normal opioid receptor</td></tr>
+<tr><td>HLA-B</td><td>WT/WT</td><td>Wild Type</td><td>Both</td><td>No Stevens-Johnson risk</td></tr>
+<tr><td>G6PD</td><td>WT/WT</td><td>Normal</td><td>Admera</td><td>Normal G6PD efficiency</td></tr>
+<tr><td>IFNL3</td><td>Unfavorable</td><td>Unfavorable</td><td>Admera</td><td>Decreased HCV treatment response</td></tr>
+</tbody>
+</table>
+</div>
+<p style="font-size: 0.8em; color: var(--muted); margin-top: 8px;">Showing 28 of 53 Admera genes + all 16 GeneSight genes. Remaining genes (SCN2A, TPMT, UGT1A1, DPYD, F2, F5, FAAH, CNR1, KIF6, LDLR, APOB, APOE, ATM, CDA, CES1, GSTP1, HFE, ITPA, NQO1, ERCC1, SLCO1B1, XRCC1, AGTR1, ACE) returned normal/standard results with no direct TD relevance.</p>
+</div>
+</div>
+
+<!-- TAB 5: CHARTS -->
+<div id="charts" class="panel">
+<div class="grid-2">
+  <div class="card">
+    <h3>Seroquel (Quetiapine) Dose Over Time</h3>
+    <div class="chart-container"><canvas id="seroquelChart"></canvas></div>
+  </div>
+  <div class="card">
+    <h3>Cumulative CPZeq Dose-Years</h3>
+    <div class="chart-container"><canvas id="cumulativeChart"></canvas></div>
+  </div>
+</div>
+<div class="card">
+  <h3>DRBA Exposure Gantt Timeline</h3>
+  <div class="chart-container"><canvas id="ganttChart"></canvas></div>
+</div>
+<div class="card">
+  <h3>Stimulant History — Verified vs Unverified Periods</h3>
+  <div class="chart-container"><canvas id="stimChart"></canvas></div>
+</div>
+</div>
+
+<!-- TAB 6: SIDE EFFECTS -->
+<div id="sideeffects" class="panel">
+<div class="card">
+<h3>Documented Side Effects and Adverse Reactions</h3>
+<div style="overflow-x:auto;">
+<table>
+<thead><tr><th>Medication</th><th>Side Effect</th><th>Severity</th><th>Source</th></tr></thead>
+<tbody>
+<tr class="highlight-red"><td><strong>Celexa (citalopram)</strong></td><td>CAUSED MANIA</td><td>Severe — diagnosis change to Bipolar</td><td>WebMD record, clinical history</td></tr>
+<tr class="highlight-red"><td><strong>Effexor XR (venlafaxine)</strong></td><td>CAUSED MANIA — hospitalization</td><td>Severe — required inpatient care</td><td>Spindler HPI, pharmacy data</td></tr>
+<tr class="highlight-red"><td><strong>Sertraline 200mg</strong></td><td>Intrusive thoughts</td><td>Led to discontinuation</td><td>Patient report, Castro intake</td></tr>
+<tr><td>Sertraline 100mg</td><td>Sexual side effects</td><td>Tolerability concern</td><td>Castro Session #1</td></tr>
+<tr><td>Risperdal</td><td>Metabolic effects (metformin needed)</td><td>Significant</td><td>Castro, NY-Pres PHP</td></tr>
+<tr><td>Seroquel 400mg</td><td>Dry mouth, falling</td><td>Moderate</td><td>Spindler HPI</td></tr>
+<tr><td>Seroquel 300mg</td><td>Weight gain</td><td>Moderate</td><td>Multiple sources</td></tr>
+<tr><td>Benztropine</td><td>Could not tolerate spicy foods</td><td>Minor</td><td>Spindler 3/13/2024</td></tr>
+<tr><td>Propranolol 60mg BID</td><td>Sleepiness/fatigue</td><td>Led to dose restructure</td><td>Castro Session #77</td></tr>
+<tr><td>Baclofen</td><td>No benefit for pain</td><td>Ineffective</td><td>Hatwood 11/3/2025</td></tr>
+<tr class="highlight-yellow"><td>Codeine (cheratussin)</td><td>NO conversion to morphine (CYP2D6 PM)</td><td>INEFFECTIVE</td><td>GeneSight</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+
+<!-- REPORT NOTE -->
+<div class="note-box">
+<strong>Report Update Note:</strong> This medication history is based on available pharmacy records, provider treatment notes, and pharmacogenomic test results spanning 2005-2026. Pre-2015 pharmacy records are not available. Stimulant therapy history prior to 2015 is based on patient report and provider documentation. Data verified against 564 raw prescription events using source hierarchy: Pharmacy Fill > Prescribing Provider > Non-Prescribing Provider. This report will be updated as additional records are obtained.
+</div>
+
+</div><!-- /container -->
+
+<script>
+// Tab switching
+function showTab(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+  // Render charts when charts tab is opened
+  if (id === 'charts' && !window.chartsRendered) { renderCharts(); window.chartsRendered = true; }
+}
+
+function renderCharts() {
+  // Seroquel dose over time
+  new Chart(document.getElementById('seroquelChart'), {
+    type: 'line',
+    data: {
+      labels: ['Mar 2016','Sep 2017','Jan 2018','Feb 2018','Apr 2018','May 2018','Jun 2018','Mar 2021','Jan 2023','Mar 2023','Apr 2023','Dec 2023','Jul 2024'],
+      datasets: [{
+        label: 'Quetiapine Dose (mg)',
+        data: [200, 100, 100, 200, 300, 400, 300, 150, 100, 50, 0, 50, 0],
+        borderColor: '#C9302C', backgroundColor: 'rgba(201,48,44,0.1)', fill: true,
+        tension: 0.3, pointRadius: 5, pointBackgroundColor: '#C9302C'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        annotation: {},
+        legend: { display: false },
+        title: { display: true, text: 'Quetiapine (Seroquel) Dose Timeline — PRIMARY TD AGENT', font: { size: 13 } }
+      },
+      scales: {
+        y: { title: { display: true, text: 'Dose (mg)' }, min: 0, max: 450 },
+        x: { title: { display: true, text: 'Date' } }
+      }
+    }
+  });
+
+  // Cumulative CPZeq dose-years
+  new Chart(document.getElementById('cumulativeChart'), {
+    type: 'line',
+    data: {
+      labels: ['Jun 2012','Jan 2013','Dec 2016','Jan 2017','Jun 2017','Dec 2017','Apr 2018','Jun 2018','Jun 2019','Jun 2020','Mar 2021','Jan 2023','Apr 2023','Jul 2024'],
+      datasets: [{
+        label: 'Cumulative CPZeq Dose-Years',
+        data: [0, 11, 78, 126, 200, 280, 360, 420, 620, 820, 920, 1050, 1080, 1144],
+        borderColor: '#2B5797', backgroundColor: 'rgba(43,87,151,0.15)', fill: true,
+        tension: 0.3, pointRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'Cumulative PM-Adjusted CPZeq Dose-Years (All DRBAs)', font: { size: 13 } }
+      },
+      scales: {
+        y: { title: { display: true, text: 'CPZeq Dose-Years' }, min: 0 },
+        x: { title: { display: true, text: '' } }
+      }
+    }
+  });
+
+  // DRBA Gantt chart
+  new Chart(document.getElementById('ganttChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Compazine','Risperdal','Seroquel','Abilify','Benztropine (worsening)'],
+      datasets: [
+        { label: 'Start offset (years from Jun 2012)', data: [0, 4.5, 3.75, 4.25, 8.17], backgroundColor: 'rgba(0,0,0,0)', borderWidth: 0 },
+        { label: 'Duration (years)', data: [0.58, 1.0, 8.33, 0.014, 3.58],
+          backgroundColor: ['#FFC107','#C9302C','#C9302C','#6c757d','#fd7e14'],
+          borderColor: ['#e0a800','#a52020','#a52020','#495057','#e06400'], borderWidth: 1
+        }
+      ]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'DRBA + Anticholinergic Exposure Duration (Gantt)', font: { size: 13 } },
+        tooltip: { callbacks: { label: (c) => c.datasetIndex === 1 ? c.raw.toFixed(1) + ' years' : '' } }
+      },
+      scales: {
+        x: { stacked: true, title: { display: true, text: 'Years from first DRBA (Jun 2012)' }, min: 0, max: 13 },
+        y: { stacked: true }
+      }
+    }
+  });
+
+  // Stimulant timeline
+  new Chart(document.getElementById('stimChart'), {
+    type: 'bar',
+    data: {
+      labels: ['2005-2009\n(unverified)','2009-2015\n(unverified)','2015\nVyvanse','2015-2016\nXR','2016\nIR various','2017\nDexedrine','2018+\nCastro IR','2024-2026\nCurrent'],
+      datasets: [{
+        label: 'Dose (mg)',
+        data: [10, 0, 60, 30, 20, 10, 20, 20],
+        backgroundColor: [
+          'rgba(255,193,7,0.4)','rgba(255,193,7,0.3)','rgba(43,87,151,0.6)','rgba(43,87,151,0.7)',
+          'rgba(43,87,151,0.7)','rgba(43,87,151,0.7)','rgba(43,87,151,0.8)','rgba(21,87,36,0.8)'
+        ],
+        borderColor: ['#e0a800','#e0a800','#2B5797','#2B5797','#2B5797','#2B5797','#2B5797','#155724'],
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'Stimulant History — Yellow = Unverified, Blue = Verified, Green = Current', font: { size: 12 } }
+      },
+      scales: { y: { title: { display: true, text: 'Dose (mg)' }, min: 0, max: 70 } }
+    }
+  });
+}
+</script>
+</body>
+</html>
